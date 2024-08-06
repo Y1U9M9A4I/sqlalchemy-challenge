@@ -45,13 +45,17 @@ app = Flask(__name__)
 def welcome():
     """List all available api routes."""
     return (
-        f"<h1> Available Routes for Hawaii Data Analysis:</h1><br/>"
-        f"<h2> Available Information Routes: </h2><br/>"
+        f"<h1> Available Routes for Hawaii Data Analysis</h1><br/>"
+        f"<h2> Available Static Information Routes: </h2><br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/start/<br/>"
-        f"/api/v1.0/start_end/<br/>"
+        f"<h2> Available Dynamic Information Routes: </h2><br/>"
+        f"/api/v1.0/start<br/>"
+        f"/api/v1.0/start_end<br/>"
+        f"<h2> Important Notes </h2><br/>"
+        f"Dates must be input in the following format: yyyy-mm-dd<br/>"
+        f"Date ranges must be input in the following format: yyyy-mm-dd_yyyy-mm-dd<br/>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -124,12 +128,13 @@ def tobs():
 
 @app.route("/api/v1.0/<start>")
 def input_start(start):
+    end = "2017-08-23"
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
     """Return a list of min, avg, max temp given a start date"""
 
-    start_results = session.query(func.min(meas.tobs), func.max(meas.tobs), func.avg(meas.tobs)).filter(meas.date >= start).all()
+    start_results = session.query(func.min(meas.tobs), func.max(meas.tobs), func.avg(meas.tobs)).filter(meas.date >= start).filter(meas.date <=end).all()
 
     session.close()
 
@@ -143,8 +148,26 @@ def input_start(start):
 
     return jsonify(start_data)
     
+@app.route("/api/v1.0/<start>_<end>")
+def input_startend(start, end):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
 
+    """Return a list of min, avg, max temp given a start date"""
 
+    startend_results = session.query(func.min(meas.tobs), func.max(meas.tobs), func.avg(meas.tobs)).filter(meas.date >= start).filter(meas.date <=end).all()
+
+    session.close()
+
+    startend_data = []
+    for min, max, avg in startend_results:
+        startend_dict = {}
+        startend_dict["min"] = min
+        startend_dict["max"] = max 
+        startend_dict["avg"] = avg
+        startend_data.append(startend_dict)
+
+    return jsonify(startend_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
